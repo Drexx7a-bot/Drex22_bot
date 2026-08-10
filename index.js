@@ -1,6 +1,11 @@
 const TelegramBot = require("node-telegram-bot-api");
+const Parser = require("rss-parser");
+const cron = require("node-cron");
+const express = require("express");
 
 const token = process.env.BOT_TOKEN;
+const CHANNEL_ID = process.env.CHANNEL_ID || "";
+const PORT = process.env.PORT || 3000;
 
 if (!token) {
     console.error("❌ BOT_TOKEN غير موجود في Environment Variables");
@@ -11,6 +16,8 @@ const bot = new TelegramBot(token, {
     polling: true
 });
 
+const parser = new Parser();
+
 /*
 ==================================================
               صناع المحتوى
@@ -18,10 +25,6 @@ const bot = new TelegramBot(token, {
 */
 
 const creators = {
-
-    // =========================
-    // RESPECT
-    // =========================
 
     Respect: [
         { name: "OGxHusni", youtube: null, kick: "ogxhusni" },
@@ -63,15 +66,7 @@ const creators = {
         { name: "ZOO6K", youtube: null, kick: null }
     ],
 
-    // =========================
-    // MT LIFE
-    // =========================
-
     MT: [],
-
-    // =========================
-    // FALCONS
-    // =========================
 
     Falcons: [
         { name: "BO3OMAR22", youtube: null, kick: null },
@@ -89,10 +84,6 @@ const creators = {
         { name: "Mohammed Oden", youtube: null, kick: null }
     ],
 
-    // =========================
-    // POWR
-    // =========================
-
     POWR: [
         { name: "Shongxbong", youtube: null, kick: null },
         { name: "Abu Nooh", youtube: null, kick: null },
@@ -109,10 +100,9 @@ const creators = {
     ]
 };
 
-
 /*
 ==================================================
-              دوال مساعدة
+              أدوات القوائم
 ==================================================
 */
 
@@ -135,6 +125,38 @@ function getAllCreators() {
     return all;
 }
 
+function sendCreators(chatId, team) {
+
+    const list = getTeam(team);
+
+    if (!list.length) {
+        return bot.sendMessage(
+            chatId,
+            `❌ لا توجد قائمة مضافة لفريق ${team} حاليًا.`
+        );
+    }
+
+    let text = `🔥 ${team}\n\n`;
+
+    for (const creator of list) {
+
+        text += `👤 ${creator.name}\n`;
+
+        if (creator.youtube) {
+            text += `▶️ YouTube: https://youtube.com/@${creator.youtube}\n`;
+        }
+
+        if (creator.kick) {
+            text += `🟢 Kick: https://kick.com/${creator.kick}\n`;
+        }
+
+        text += "\n";
+    }
+
+    bot.sendMessage(chatId, text, {
+        disable_web_page_preview: true
+    });
+}
 
 /*
 ==================================================
@@ -145,7 +167,7 @@ function getAllCreators() {
 bot.onText(/^\/start$/, (msg) => {
 
     const message = `
-🔥 أهلاً بك في بوت صناع المحتوى
+🔥 أهلاً بك في Drex22_bot
 
 📋 الأوامر:
 
@@ -154,60 +176,16 @@ bot.onText(/^\/start$/, (msg) => {
 /mt - MT Life
 /falcons - Falcons
 /powr - POWR
+
+📺 يتم عرض روابط YouTube و Kick المتوفرة.
 `;
 
     bot.sendMessage(msg.chat.id, message);
 });
 
-
 /*
 ==================================================
-             عرض صناع المحتوى
-==================================================
-*/
-
-function sendCreators(chatId, team) {
-
-    const list = getTeam(team);
-
-    if (!list.length) {
-
-        bot.sendMessage(
-            chatId,
-            `❌ لا توجد قائمة مضافة لفريق ${team} حاليًا.`
-        );
-
-        return;
-    }
-
-    let text = `🔥 ${team}\n\n`;
-
-    for (const creator of list) {
-
-        text += `👤 ${creator.name}\n`;
-
-        if (creator.youtube) {
-            text += `▶️ YouTube: ${creator.youtube}\n`;
-        } else {
-            text += `▶️ YouTube: غير مؤكد\n`;
-        }
-
-        if (creator.kick) {
-            text += `🟢 Kick: ${creator.kick}\n`;
-        } else {
-            text += `🟢 Kick: غير مؤكد\n`;
-        }
-
-        text += "\n";
-    }
-
-    bot.sendMessage(chatId, text);
-}
-
-
-/*
-==================================================
-                 الأوامر
+             جميع صناع المحتوى
 ==================================================
 */
 
@@ -217,52 +195,175 @@ bot.onText(/^\/creators$/, (msg) => {
 
     let text = "🔥 جميع صناع المحتوى\n\n";
 
-    if (!all.length) {
-        bot.sendMessage(msg.chat.id, "لا توجد بيانات.");
-        return;
-    }
-
     for (const creator of all) {
 
         text += `🏷️ ${creator.team}\n`;
         text += `👤 ${creator.name}\n`;
-        text += `▶️ YouTube: ${creator.youtube || "غير مؤكد"}\n`;
-        text += `🟢 Kick: ${creator.kick || "غير مؤكد"}\n`;
+
+        if (creator.youtube) {
+            text += `▶️ YouTube: https://youtube.com/@${creator.youtube}\n`;
+        }
+
+        if (creator.kick) {
+            text += `🟢 Kick: https://kick.com/${creator.kick}\n`;
+        }
+
         text += "\n";
     }
 
-    bot.sendMessage(msg.chat.id, text);
+    bot.sendMessage(msg.chat.id, text, {
+        disable_web_page_preview: true
+    });
 });
 
+/*
+==================================================
+                  الأوامر
+==================================================
+*/
 
 bot.onText(/^\/respect$/, (msg) => {
     sendCreators(msg.chat.id, "Respect");
 });
 
-
 bot.onText(/^\/mt$/, (msg) => {
     sendCreators(msg.chat.id, "MT");
 });
-
 
 bot.onText(/^\/falcons$/, (msg) => {
     sendCreators(msg.chat.id, "Falcons");
 });
 
-
 bot.onText(/^\/powr$/, (msg) => {
     sendCreators(msg.chat.id, "POWR");
 });
 
+/*
+==================================================
+              YouTube Auto Post
+==================================================
+*/
+
+const youtubeChannels = [
+    {
+        name: "NEFOXD",
+        username: "NEFOXDRT"
+    },
+    {
+        name: "F1aisal",
+        username: "F1aisalRT"
+    },
+    {
+        name: "iMonkey_D",
+        username: "imonkey_d"
+    },
+    {
+        name: "S5B",
+        username: "S5B_Q"
+    }
+];
+
+const sentVideos = new Set();
+
+async function checkYouTube() {
+
+    if (!CHANNEL_ID) {
+        return;
+    }
+
+    for (const channel of youtubeChannels) {
+
+        try {
+
+            const feed = await parser.parseURL(
+                `https://www.youtube.com/feeds/videos.xml?channel_id=${channel.username}`
+            );
+
+            if (!feed.items || !feed.items.length) {
+                continue;
+            }
+
+            const video = feed.items[0];
+
+            if (sentVideos.has(video.id)) {
+                continue;
+            }
+
+            sentVideos.add(video.id);
+
+            const message = `
+🎬 فيديو جديد!
+
+👤 ${channel.name}
+
+📺 ${video.title}
+
+🔗 ${video.link}
+`;
+
+            await bot.sendMessage(
+                CHANNEL_ID,
+                message,
+                {
+                    disable_web_page_preview: false
+                }
+            );
+
+        } catch (error) {
+
+            console.error(
+                `YouTube Error - ${channel.name}:`,
+                error.message
+            );
+        }
+    }
+}
 
 /*
 ==================================================
-              أخطاء البوت
+       فحص YouTube كل 5 دقائق
+==================================================
+*/
+
+cron.schedule("*/5 * * * *", () => {
+    checkYouTube();
+});
+
+/*
+==================================================
+              Render Web Server
+==================================================
+*/
+
+const app = express();
+
+app.get("/", (req, res) => {
+    res.send("Drex22_bot is online ✅");
+});
+
+app.get("/health", (req, res) => {
+    res.json({
+        status: "online",
+        bot: "Drex22_bot"
+    });
+});
+
+app.listen(PORT, () => {
+    console.log(`🌐 Server running on port ${PORT}`);
+});
+
+/*
+==================================================
+                  أخطاء
 ==================================================
 */
 
 bot.on("polling_error", (error) => {
-    console.error("Polling Error:", error.message);
+    console.error("❌ Polling Error:", error.message);
 });
 
-console.log("✅ Drex22 Bot يعمل الآن!");
+process.on("unhandledRejection", (error) => {
+    console.error("❌ Unhandled Rejection:", error);
+});
+
+console.log("✅ Drex22_bot يعمل الآن!");
