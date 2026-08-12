@@ -1,15 +1,12 @@
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
 
-/*
-==================================================
-                    ENV
-==================================================
-*/
+/* =========================
+   ENV
+========================= */
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
-
 const KICK_CLIENT_ID = process.env.KICK_CLIENT_ID;
 const KICK_CLIENT_SECRET = process.env.KICK_CLIENT_SECRET;
 
@@ -31,21 +28,17 @@ if (!KICK_CLIENT_ID || !KICK_CLIENT_SECRET) {
     process.exit(1);
 }
 
-/*
-==================================================
-                 TELEGRAM
-==================================================
-*/
+/* =========================
+   TELEGRAM
+========================= */
 
 const bot = new TelegramBot(BOT_TOKEN, {
     polling: true
 });
 
-/*
-==================================================
-                 RENDER SERVER
-==================================================
-*/
+/* =========================
+   RENDER SERVER
+========================= */
 
 const app = express();
 
@@ -54,7 +47,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-    res.status(200).json({
+    res.json({
         status: "ok",
         bot: "DREX STREAM BOT"
     });
@@ -64,11 +57,9 @@ app.listen(PORT, "0.0.0.0", () => {
     console.log(`🌐 Server running on port ${PORT}`);
 });
 
-/*
-==================================================
-                 CREATORS
-==================================================
-*/
+/* =========================
+   CREATORS
+========================= */
 
 const CREATORS = {
 
@@ -147,11 +138,9 @@ const CREATORS = {
     ]
 };
 
-/*
-==================================================
-                 FLATTEN LIST
-==================================================
-*/
+/* =========================
+   FLATTEN
+========================= */
 
 const creators = [];
 
@@ -164,11 +153,9 @@ for (const team of Object.keys(CREATORS)) {
     }
 }
 
-/*
-==================================================
-                 STATE
-==================================================
-*/
+/* =========================
+   STATE
+========================= */
 
 const liveState = new Map();
 const postedStreams = new Map();
@@ -176,11 +163,9 @@ const postedStreams = new Map();
 let kickAccessToken = null;
 let kickTokenExpiresAt = 0;
 
-/*
-==================================================
-                 KICK TOKEN
-==================================================
-*/
+/* =========================
+   KICK TOKEN
+========================= */
 
 async function getKickToken() {
 
@@ -196,12 +181,16 @@ async function getKickToken() {
         {
             method: "POST",
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
+                "Content-Type":
+                    "application/x-www-form-urlencoded"
             },
             body: new URLSearchParams({
-                grant_type: "client_credentials",
-                client_id: KICK_CLIENT_ID,
-                client_secret: KICK_CLIENT_SECRET
+                grant_type:
+                    "client_credentials",
+                client_id:
+                    KICK_CLIENT_ID,
+                client_secret:
+                    KICK_CLIENT_SECRET
             })
         }
     );
@@ -228,11 +217,9 @@ async function getKickToken() {
     return kickAccessToken;
 }
 
-/*
-==================================================
-                 KICK REQUEST
-==================================================
-*/
+/* =========================
+   KICK REQUEST
+========================= */
 
 async function kickRequest(url) {
 
@@ -266,11 +253,9 @@ async function kickRequest(url) {
     return response.json();
 }
 
-/*
-==================================================
-                 CHECK KICK
-==================================================
-*/
+/* =========================
+   CHECK KICK
+========================= */
 
 async function checkKick(creator) {
 
@@ -298,41 +283,37 @@ async function checkKick(creator) {
     }
 
     /*
-      Kick channel data contains live information.
+      مهم جدًا:
+      لا نعتبر الحساب Live
+      إلا إذا Kick رجع is_live === true
     */
 
-    if (
-        channel.is_live === true ||
-        channel.stream
-    ) {
-
-        const stream =
-            channel.stream || {};
-
-        return {
-            id:
-                stream.id ||
-                channel.id ||
-                creator.kick,
-
-            title:
-                stream.title ||
-                channel.stream_title ||
-                `${creator.name} بدأ البث 🔴`,
-
-            url:
-                `https://kick.com/${creator.kick}`
-        };
+    if (channel.is_live !== true) {
+        return null;
     }
 
-    return null;
+    const stream =
+        channel.stream || {};
+
+    return {
+        id:
+            stream.id ||
+            channel.id ||
+            creator.kick,
+
+        title:
+            stream.title ||
+            channel.stream_title ||
+            `${creator.name} بدأ البث 🔴`,
+
+        url:
+            `https://kick.com/${creator.kick}`
+    };
 }
 
-/*
-==================================================
-                 SEND TELEGRAM
-==================================================
-*/
+/* =========================
+   TELEGRAM ALERT
+========================= */
 
 async function sendLiveAlert(
     creator,
@@ -376,11 +357,9 @@ async function sendLiveAlert(
     }
 }
 
-/*
-==================================================
-                 MONITOR
-==================================================
-*/
+/* =========================
+   MONITOR
+========================= */
 
 let monitoring = false;
 
@@ -397,8 +376,8 @@ async function monitorCreators() {
         );
 
         /*
-          الأولوية:
-          DREX_7A أولاً
+          DREX_7A موجود أول القائمة
+          لذلك يتم فحصه أولًا.
         */
 
         for (const creator of creators) {
@@ -415,27 +394,25 @@ async function monitorCreators() {
                     );
 
                 const key =
-                    creator.kick
-                        .toLowerCase();
+                    creator.kick.toLowerCase();
+
+                /*
+                  OFFLINE
+                */
 
                 if (!stream) {
 
-                    if (
-                        liveState.get(key)
-                    ) {
-
-                        liveState.set(
-                            key,
-                            false
-                        );
-
-                        console.log(
-                            `⚫ انتهى بث ${creator.name}`
-                        );
-                    }
+                    liveState.set(
+                        key,
+                        false
+                    );
 
                     continue;
                 }
+
+                /*
+                  LIVE
+                */
 
                 liveState.set(
                     key,
@@ -443,9 +420,11 @@ async function monitorCreators() {
                 );
 
                 const streamId =
-                    String(
-                        stream.id
-                    );
+                    String(stream.id);
+
+                /*
+                  منع التكرار
+                */
 
                 if (
                     postedStreams.get(key) ===
@@ -482,11 +461,9 @@ async function monitorCreators() {
     }
 }
 
-/*
-==================================================
-                 COMMANDS
-==================================================
-*/
+/* =========================
+   COMMANDS
+========================= */
 
 bot.onText(
     /^\/start$/,
@@ -495,7 +472,7 @@ bot.onText(
         await bot.sendMessage(
             msg.chat.id,
 
-`🤖 *DREX STREAM BOT*
+`🤖 DREX STREAM BOT
 
 🟢 البوت يعمل
 
@@ -505,12 +482,8 @@ DREX_7A
 📡 مراقبة Kick مفعلة
 📢 تنبيهات القناة مفعلة
 
-استخدم:
 /status
-/creators`,
-            {
-                parse_mode: "Markdown"
-            }
+/creators`
         );
     }
 );
@@ -520,7 +493,7 @@ bot.onText(
     async msg => {
 
         let text =
-            "📡 *حالة المراقبة*\n\n";
+            "📡 حالة المراقبة:\n\n";
 
         for (const creator of creators) {
 
@@ -532,19 +505,16 @@ bot.onText(
                 liveState.get(
                     creator.kick.toLowerCase()
                 )
-                ? "🔴 LIVE"
-                : "⚫ Offline";
+                    ? "🔴 LIVE"
+                    : "⚫ Offline";
 
             text +=
-`${creator.name} — ${status}\n`;
+                `${creator.name} — ${status}\n`;
         }
 
         await bot.sendMessage(
             msg.chat.id,
-            text,
-            {
-                parse_mode: "Markdown"
-            }
+            text
         );
     }
 );
@@ -554,12 +524,14 @@ bot.onText(
     async msg => {
 
         let text =
-            "📋 *قائمة المراقبة*\n\n";
+            "📋 قائمة المراقبة:\n\n";
 
-        for (const team of Object.keys(CREATORS)) {
+        for (
+            const team of Object.keys(CREATORS)
+        ) {
 
             text +=
-                `\n🏷️ *${team}*\n`;
+                `\n🏷️ ${team}\n`;
 
             for (
                 const creator
@@ -567,31 +539,27 @@ bot.onText(
             ) {
 
                 text +=
-                    `• ${creator.name}` +
-                    (
-                        creator.kick
-                            ? ` — @${creator.kick}`
-                            : ""
-                    ) +
-                    "\n";
+                    `• ${creator.name}`;
+
+                if (creator.kick) {
+                    text +=
+                        ` — @${creator.kick}`;
+                }
+
+                text += "\n";
             }
         }
 
         await bot.sendMessage(
             msg.chat.id,
-            text,
-            {
-                parse_mode: "Markdown"
-            }
+            text
         );
     }
 );
 
-/*
-==================================================
-                 ERRORS
-==================================================
-*/
+/* =========================
+   ERRORS
+========================= */
 
 bot.on(
     "polling_error",
@@ -623,11 +591,9 @@ process.on(
     }
 );
 
-/*
-==================================================
-                 START
-==================================================
-*/
+/* =========================
+   START
+========================= */
 
 console.log(
     "================================"
