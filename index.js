@@ -3,7 +3,7 @@ const express = require("express");
 
 /*
 ==================================================
-                 ENVIRONMENT
+                    ENV
 ==================================================
 */
 
@@ -14,6 +14,7 @@ const KICK_CLIENT_ID = process.env.KICK_CLIENT_ID;
 const KICK_CLIENT_SECRET = process.env.KICK_CLIENT_SECRET;
 
 const PORT = process.env.PORT || 3000;
+const CHECK_INTERVAL = 30000;
 
 if (!BOT_TOKEN) {
     console.error("❌ BOT_TOKEN غير موجود");
@@ -30,19 +31,49 @@ if (!KICK_CLIENT_ID || !KICK_CLIENT_SECRET) {
     process.exit(1);
 }
 
+/*
+==================================================
+                 TELEGRAM
+==================================================
+*/
+
 const bot = new TelegramBot(BOT_TOKEN, {
     polling: true
 });
 
 /*
 ==================================================
-              صناع المحتوى
+                 RENDER SERVER
 ==================================================
 */
 
-const creators = {
+const app = express();
+
+app.get("/", (req, res) => {
+    res.status(200).send("DREX STREAM BOT is running ✅");
+});
+
+app.get("/health", (req, res) => {
+    res.status(200).json({
+        status: "ok",
+        bot: "DREX STREAM BOT"
+    });
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🌐 Server running on port ${PORT}`);
+});
+
+/*
+==================================================
+                 CREATORS
+==================================================
+*/
+
+const CREATORS = {
 
     Respect: [
+        { name: "DREX_7A", youtube: null, kick: "drex-7a" },
         { name: "OGxHusni", youtube: null, kick: "ogxhusni" },
         { name: "NEFOXD", youtube: "NEFOXDRT", kick: "nefoxd" },
         { name: "Waakd", youtube: null, kick: "waakd" },
@@ -118,576 +149,465 @@ const creators = {
 
 /*
 ==================================================
-                 دوال القوائم
+                 FLATTEN LIST
 ==================================================
 */
 
-function getTeam(team) {
-    return creators[team] || [];
-}
+const creators = [];
 
-function getAllCreators() {
-    const all = [];
-
-    for (const team of Object.keys(creators)) {
-        for (const creator of creators[team]) {
-            all.push({
-                team,
-                ...creator
-            });
-        }
+for (const team of Object.keys(CREATORS)) {
+    for (const creator of CREATORS[team]) {
+        creators.push({
+            ...creator,
+            team
+        });
     }
-
-    return all;
 }
 
 /*
 ==================================================
-                 أوامر البوت
+                 STATE
 ==================================================
 */
 
-bot.onText(/^\/start$/, async (msg) => {
-
-    await bot.sendMessage(
-        msg.chat.id,
-        `
-🔥 أهلاً بك في Drex22 Bot
-
-📋 الأوامر:
-
-/creators - جميع صناع المحتوى
-/respect - Respect
-/mt - MT Life
-/falcons - Falcons
-/powr - POWR
-/status - حالة البوت
-
-🟢 مراقبة Kick مفعلة.
-`
-    );
-});
-
-async function sendCreators(chatId, team) {
-
-    const list = getTeam(team);
-
-    if (!list.length) {
-        return bot.sendMessage(
-            chatId,
-            `❌ لا توجد قائمة مضافة لفريق ${team} حاليًا.`
-        );
-    }
-
-    let text = `🔥 ${team}\n\n`;
-
-    for (const creator of list) {
-
-        text += `👤 ${creator.name}\n`;
-
-        if (creator.kick) {
-            text += `🟢 Kick: https://kick.com/${creator.kick}\n`;
-        }
-
-        text += "\n";
-    }
-
-    await bot.sendMessage(chatId, text, {
-        disable_web_page_preview: true
-    });
-}
-
-bot.onText(/^\/respect$/, (msg) => {
-    sendCreators(msg.chat.id, "Respect");
-});
-
-bot.onText(/^\/mt$/, (msg) => {
-    sendCreators(msg.chat.id, "MT");
-});
-
-bot.onText(/^\/falcons$/, (msg) => {
-    sendCreators(msg.chat.id, "Falcons");
-});
-
-bot.onText(/^\/powr$/, (msg) => {
-    sendCreators(msg.chat.id, "POWR");
-});
-
-bot.onText(/^\/creators$/, async (msg) => {
-
-    const all = getAllCreators();
-
-    let text = "🔥 جميع صناع المحتوى\n\n";
-
-    for (const creator of all) {
-
-        text += `🏷️ ${creator.team}\n`;
-        text += `👤 ${creator.name}\n`;
-
-        if (creator.kick) {
-            text += `🟢 Kick: https://kick.com/${creator.kick}\n`;
-        }
-
-        text += "\n";
-    }
-
-    await bot.sendMessage(msg.chat.id, text, {
-        disable_web_page_preview: true
-    });
-});
-
-bot.onText(/^\/status$/, async (msg) => {
-
-    await bot.sendMessage(
-        msg.chat.id,
-        "✅ البوت شغال ومراقبة Kick مفعلة."
-    );
-});
-
-/*
-==================================================
-                 KICK API
-==================================================
-*/
+const liveState = new Map();
+const postedStreams = new Map();
 
 let kickAccessToken = null;
-let tokenExpiresAt = 0;
+let kickTokenExpiresAt = 0;
+
+/*
+==================================================
+                 KICK TOKEN
+==================================================
+*/
 
 async function getKickToken() {
 
     if (
         kickAccessToken &&
-        Date.now() < tokenExpiresAt - 60000
+        Date.now() < kickTokenExpiresAt
     ) {
         return kickAccessToken;
     }
-
-    const body = new URLSearchParams();
-
-    body.append("grant_type", "client_credentials");
-    body.append("client_id", KICK_CLIENT_ID);
-    body.append("client_secret", KICK_CLIENT_SECRET);
 
     const response = await fetch(
         "https://id.kick.com/oauth/token",
         {
             method: "POST",
             headers: {
-                "Content-Type":
-                    "application/x-www-form-urlencoded"
+                "Content-Type": "application/x-www-form-urlencoded"
             },
-            body
+            body: new URLSearchParams({
+                grant_type: "client_credentials",
+                client_id: KICK_CLIENT_ID,
+                client_secret: KICK_CLIENT_SECRET
+            })
         }
     );
 
     if (!response.ok) {
-        const errorText = await response.text();
+        const text = await response.text();
 
         throw new Error(
-            `Kick token error ${response.status}: ${errorText}`
+            `Kick OAuth ${response.status}: ${text}`
         );
     }
 
     const data = await response.json();
 
-    kickAccessToken = data.access_token;
+    kickAccessToken =
+        data.access_token;
 
-    tokenExpiresAt =
+    kickTokenExpiresAt =
         Date.now() +
-        ((data.expires_in || 3600) * 1000);
+        ((data.expires_in || 3600) - 60) * 1000;
 
-    console.log("✅ Kick access token obtained");
+    console.log("🔑 Kick token obtained");
 
     return kickAccessToken;
 }
 
 /*
 ==================================================
-        جلب معلومات قنوات Kick
+                 KICK REQUEST
 ==================================================
 */
 
-async function getKickChannels(slugs) {
+async function kickRequest(url) {
 
-    const token = await getKickToken();
-
-    const params = new URLSearchParams();
-
-    for (const slug of slugs) {
-        params.append("slug", slug);
-    }
+    const token =
+        await getKickToken();
 
     const response = await fetch(
-        `https://api.kick.com/public/v1/channels?${params.toString()}`,
+        url,
         {
             headers: {
-                Authorization: `Bearer ${token}`
+                Authorization:
+                    `Bearer ${token}`,
+                "Client-ID":
+                    KICK_CLIENT_ID,
+                Accept:
+                    "application/json"
             }
         }
     );
 
     if (!response.ok) {
-        const text = await response.text();
+
+        const text =
+            await response.text();
 
         throw new Error(
-            `Kick channels error ${response.status}: ${text}`
+            `Kick API ${response.status}: ${text}`
         );
     }
 
-    return await response.json();
+    return response.json();
 }
 
 /*
 ==================================================
-       جلب البثوث المباشرة
+                 CHECK KICK
 ==================================================
 */
 
-async function getLiveStreams(userIds) {
+async function checkKick(creator) {
 
-    if (!userIds.length) {
-        return [];
+    if (!creator.kick) {
+        return null;
     }
 
-    const token = await getKickToken();
-
-    const params = new URLSearchParams();
-
-    for (const id of userIds) {
-        params.append(
-            "broadcaster_user_id",
-            String(id)
+    const username =
+        encodeURIComponent(
+            creator.kick
         );
-    }
 
-    const response = await fetch(
-        `https://api.kick.com/public/v1/livestreams?${params.toString()}`,
-        {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        }
-    );
-
-    if (!response.ok) {
-        const text = await response.text();
-
-        throw new Error(
-            `Kick livestream error ${response.status}: ${text}`
+    const data =
+        await kickRequest(
+            `https://api.kick.com/public/v1/channels?slug=${username}`
         );
+
+    const channel =
+        Array.isArray(data.data)
+            ? data.data[0]
+            : data.data;
+
+    if (!channel) {
+        return null;
     }
 
-    const data = await response.json();
+    /*
+      Kick channel data contains live information.
+    */
 
-    return data.data || [];
+    if (
+        channel.is_live === true ||
+        channel.stream
+    ) {
+
+        const stream =
+            channel.stream || {};
+
+        return {
+            id:
+                stream.id ||
+                channel.id ||
+                creator.kick,
+
+            title:
+                stream.title ||
+                channel.stream_title ||
+                `${creator.name} بدأ البث 🔴`,
+
+            url:
+                `https://kick.com/${creator.kick}`
+        };
+    }
+
+    return null;
 }
 
 /*
 ==================================================
-             حالة البث السابقة
+                 SEND TELEGRAM
 ==================================================
 */
 
-const liveState = new Map();
+async function sendLiveAlert(
+    creator,
+    stream
+) {
 
-/*
-==================================================
-              إرسال تنبيه البث
-==================================================
-*/
+    const message =
+`🔴 *بدأ البث الآن!*
 
-async function sendLiveNotification(creator, stream) {
+👤 ${creator.name}
+🏷️ ${creator.team}
 
-    const title =
-        stream.title ||
-        "بث مباشر";
+🎬 ${stream.title}
 
-    const category =
-        stream.category?.name ||
-        "غير محدد";
-
-    const viewerCount =
-        stream.viewer_count ??
-        stream.viewerCount ??
-        0;
-
-    const thumbnail =
-        stream.thumbnail ||
-        stream.thumbnail_url ||
-        stream.thumbnailUrl ||
-        null;
-
-    const slug =
-        creator.kick;
-
-    const text = `
-🔴 <b>${creator.name} بدأ بث مباشر!</b>
-
-🎬 <b>العنوان:</b> ${title}
-
-🎮 <b>التصنيف:</b> ${category}
-
-👥 <b>المشاهدون:</b> ${viewerCount}
-
-🟢 <b>Kick:</b>
-https://kick.com/${slug}
-`;
+📺 [مشاهدة البث على Kick](${stream.url})`;
 
     try {
 
-        if (thumbnail) {
-
-            await bot.sendPhoto(
-                CHANNEL_ID,
-                thumbnail,
-                {
-                    caption: text,
-                    parse_mode: "HTML"
-                }
-            );
-
-        } else {
-
-            await bot.sendMessage(
-                CHANNEL_ID,
-                text,
-                {
-                    parse_mode: "HTML",
-                    disable_web_page_preview: false
-                }
-            );
-        }
+        await bot.sendMessage(
+            CHANNEL_ID,
+            message,
+            {
+                parse_mode: "Markdown",
+                disable_web_page_preview: false
+            }
+        );
 
         console.log(
-            `📢 تم إرسال تنبيه ${creator.name}`
+            `📢 تم نشر: ${creator.name}`
         );
+
+        return true;
 
     } catch (error) {
 
         console.error(
-            `❌ فشل إرسال تنبيه ${creator.name}:`,
-            error.message
+            `❌ Telegram: ${error.message}`
         );
+
+        return false;
     }
 }
 
 /*
 ==================================================
-             مراقبة Kick
+                 MONITOR
 ==================================================
 */
 
-async function checkKick() {
+let monitoring = false;
+
+async function monitorCreators() {
+
+    if (monitoring) return;
+
+    monitoring = true;
 
     try {
 
-        const allCreators = getAllCreators();
-
-        const kickCreators =
-            allCreators.filter(
-                creator => creator.kick
-            );
-
-        if (!kickCreators.length) {
-            console.log("⚠️ لا توجد حسابات Kick للمراقبة");
-            return;
-        }
+        console.log(
+            `🔎 فحص ${creators.length} حساب...`
+        );
 
         /*
-        نطلب معلومات القنوات على دفعات
+          الأولوية:
+          DREX_7A أولاً
         */
 
-        const slugs =
-            kickCreators.map(
-                creator => creator.kick
-            );
+        for (const creator of creators) {
 
-        const channelsResponse =
-            await getKickChannels(slugs);
-
-        const channels =
-            channelsResponse.data || [];
-
-        if (!channels.length) {
-            console.log("ℹ️ لم يتم العثور على قنوات Kick");
-            return;
-        }
-
-        const userIds =
-            channels
-                .map(channel =>
-                    channel.user_id ??
-                    channel.broadcaster_user_id ??
-                    channel.user?.id
-                )
-                .filter(Boolean);
-
-        const streams =
-            await getLiveStreams(userIds);
-
-        const liveByUser =
-            new Map();
-
-        for (const stream of streams) {
-
-            const userId =
-                stream.broadcaster_user_id ??
-                stream.broadcaster?.user_id ??
-                stream.channel?.user_id;
-
-            if (userId) {
-                liveByUser.set(
-                    String(userId),
-                    stream
-                );
-            }
-        }
-
-        for (const creator of kickCreators) {
-
-            const channel =
-                channels.find(channel => {
-
-                    const slug =
-                        String(
-                            channel.slug ||
-                            channel.username ||
-                            channel.user?.username ||
-                            ""
-                        ).toLowerCase();
-
-                    return slug ===
-                        creator.kick.toLowerCase();
-
-                });
-
-            if (!channel) {
+            if (!creator.kick) {
                 continue;
             }
 
-            const userId =
-                channel.user_id ??
-                channel.broadcaster_user_id ??
-                channel.user?.id;
+            try {
 
-            if (!userId) {
-                continue;
-            }
+                const stream =
+                    await checkKick(
+                        creator
+                    );
 
-            const stream =
-                liveByUser.get(
-                    String(userId)
-                );
-
-            const currentlyLive =
-                Boolean(stream);
-
-            const wasLive =
-                liveState.get(
+                const key =
                     creator.kick
-                ) || false;
+                        .toLowerCase();
 
-            /*
-            أول مرة نكتشف أنه مباشر:
-            نرسل التنبيه.
-            */
+                if (!stream) {
 
-            if (currentlyLive && !wasLive) {
+                    if (
+                        liveState.get(key)
+                    ) {
 
-                await sendLiveNotification(
-                    creator,
-                    stream
+                        liveState.set(
+                            key,
+                            false
+                        );
+
+                        console.log(
+                            `⚫ انتهى بث ${creator.name}`
+                        );
+                    }
+
+                    continue;
+                }
+
+                liveState.set(
+                    key,
+                    true
+                );
+
+                const streamId =
+                    String(
+                        stream.id
+                    );
+
+                if (
+                    postedStreams.get(key) ===
+                    streamId
+                ) {
+                    continue;
+                }
+
+                const sent =
+                    await sendLiveAlert(
+                        creator,
+                        stream
+                    );
+
+                if (sent) {
+
+                    postedStreams.set(
+                        key,
+                        streamId
+                    );
+                }
+
+            } catch (error) {
+
+                console.error(
+                    `❌ ${creator.name}: ${error.message}`
                 );
             }
-
-            liveState.set(
-                creator.kick,
-                currentlyLive
-            );
         }
 
-        console.log(
-            `🔎 Kick check completed | ${new Date().toISOString()}`
-        );
+    } finally {
 
-    } catch (error) {
-
-        console.error(
-            "❌ Kick monitoring error:",
-            error.message
-        );
+        monitoring = false;
     }
 }
 
 /*
 ==================================================
-          فحص Kick كل دقيقة
+                 COMMANDS
 ==================================================
 */
 
-setInterval(
-    checkKick,
-    60 * 1000
+bot.onText(
+    /^\/start$/,
+    async msg => {
+
+        await bot.sendMessage(
+            msg.chat.id,
+
+`🤖 *DREX STREAM BOT*
+
+🟢 البوت يعمل
+
+⭐ الأولوية:
+DREX_7A
+
+📡 مراقبة Kick مفعلة
+📢 تنبيهات القناة مفعلة
+
+استخدم:
+/status
+/creators`,
+            {
+                parse_mode: "Markdown"
+            }
+        );
+    }
+);
+
+bot.onText(
+    /^\/status$/,
+    async msg => {
+
+        let text =
+            "📡 *حالة المراقبة*\n\n";
+
+        for (const creator of creators) {
+
+            if (!creator.kick) {
+                continue;
+            }
+
+            const status =
+                liveState.get(
+                    creator.kick.toLowerCase()
+                )
+                ? "🔴 LIVE"
+                : "⚫ Offline";
+
+            text +=
+`${creator.name} — ${status}\n`;
+        }
+
+        await bot.sendMessage(
+            msg.chat.id,
+            text,
+            {
+                parse_mode: "Markdown"
+            }
+        );
+    }
+);
+
+bot.onText(
+    /^\/creators$/,
+    async msg => {
+
+        let text =
+            "📋 *قائمة المراقبة*\n\n";
+
+        for (const team of Object.keys(CREATORS)) {
+
+            text +=
+                `\n🏷️ *${team}*\n`;
+
+            for (
+                const creator
+                of CREATORS[team]
+            ) {
+
+                text +=
+                    `• ${creator.name}` +
+                    (
+                        creator.kick
+                            ? ` — @${creator.kick}`
+                            : ""
+                    ) +
+                    "\n";
+            }
+        }
+
+        await bot.sendMessage(
+            msg.chat.id,
+            text,
+            {
+                parse_mode: "Markdown"
+            }
+        );
+    }
 );
 
 /*
-تشغيل أول فحص بعد 10 ثوانٍ
+==================================================
+                 ERRORS
+==================================================
 */
 
-setTimeout(
-    checkKick,
-    10 * 1000
+bot.on(
+    "polling_error",
+    error => {
+        console.error(
+            "❌ Telegram polling:",
+            error.message
+        );
+    }
 );
-
-/*
-==================================================
-                Render Server
-==================================================
-*/
-
-const app = express();
-
-app.get("/", (req, res) => {
-    res.status(200).send(
-        "Drex22 Bot is online ✅"
-    );
-});
-
-app.get("/health", (req, res) => {
-
-    res.status(200).json({
-        status: "online",
-        kickMonitoring: true,
-        youtube: false
-    });
-});
-
-app.listen(PORT, () => {
-
-    console.log(
-        `🌐 Web server running on port ${PORT}`
-    );
-});
-
-/*
-==================================================
-                    أخطاء
-==================================================
-*/
-
-bot.on("polling_error", error => {
-
-    console.error(
-        "❌ Telegram Polling Error:",
-        error.message
-    );
-});
 
 process.on(
     "unhandledRejection",
     error => {
         console.error(
-            "❌ Unhandled Rejection:",
+            "❌ Unhandled:",
             error
         );
     }
@@ -697,15 +617,49 @@ process.on(
     "uncaughtException",
     error => {
         console.error(
-            "❌ Uncaught Exception:",
-            error
+            "❌ Exception:",
+            error.message
         );
     }
 );
 
-console.log("=================================");
-console.log("✅ Drex22 Bot started");
-console.log("🟢 Kick monitoring: ON");
-console.log("📺 YouTube: OFF");
-console.log("🖼️ Live thumbnail alerts: ON");
-console.log("=================================");
+/*
+==================================================
+                 START
+==================================================
+*/
+
+console.log(
+    "================================"
+);
+
+console.log(
+    "🤖 DREX STREAM BOT"
+);
+
+console.log(
+    "⭐ DREX_7A = PRIORITY #1"
+);
+
+console.log(
+    `👥 Total creators: ${creators.length}`
+);
+
+console.log(
+    "📡 Kick monitor: ON"
+);
+
+console.log(
+    "📢 Telegram alerts: ON"
+);
+
+console.log(
+    "================================"
+);
+
+monitorCreators();
+
+setInterval(
+    monitorCreators,
+    CHECK_INTERVAL
+);
