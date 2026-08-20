@@ -1,7 +1,5 @@
 const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
 
 /* =========================
    ENV
@@ -45,7 +43,7 @@ const bot = new TelegramBot(BOT_TOKEN, {
 const app = express();
 
 app.get("/", (req, res) => {
-    res.status(200).send("DREX STREAM BOT is running ✅");
+    res.send("DREX STREAM BOT is running ✅");
 });
 
 app.get("/health", (req, res) => {
@@ -66,88 +64,206 @@ app.listen(PORT, "0.0.0.0", () => {
 const CREATORS = {
 
     Respect: [
-        { name: "DREX_7A", youtube: null, kick: "drex-7a" },
-        { name: "OGxHusni", youtube: null, kick: "ogxhusni" },
-        { name: "NEFOXD", youtube: "NEFOXDRT", kick: "nefoxd" },
-        { name: "Waakd", youtube: null, kick: "waakd" },
-        { name: "Al_Hashidi", youtube: null, kick: "al_hashidi" },
-        { name: "ALPHAA27", youtube: null, kick: "alphaa27" },
-        { name: "ALRND", youtube: null, kick: "alrnd" },
-        { name: "bobshayb", youtube: null, kick: "bobshayb" },
-        { name: "Drb7h", youtube: null, kick: "drb7h" },
-        { name: "F1aisal", youtube: "F1aisalRT", kick: "f1aisal" },
-        { name: "Fhlwy", youtube: null, kick: "fhlwy" },
-        { name: "Graficsaw", youtube: null, kick: "graficsaw" },
-        { name: "Hook", youtube: null, kick: "hook" },
-        { name: "iC4C", youtube: null, kick: "ic4c" },
-        { name: "ID7O", youtube: null, kick: "id7o" },
-        { name: "iiMaD", youtube: null, kick: null },
-        { name: "iMonkey_D", youtube: "imonkey_d", kick: "imonkey_d" },
-        { name: "iSLF", youtube: null, kick: "islf" },
-        { name: "lHAJAR", youtube: null, kick: "lhajar" },
-        { name: "Mohsen_18", youtube: null, kick: "mohsen_18" },
-        { name: "moustache", youtube: null, kick: null },
-        { name: "Musab", youtube: null, kick: "musab" },
-        { name: "NASSER", youtube: null, kick: "nasser" },
-        { name: "OKB8", youtube: null, kick: "okb8" },
-        { name: "omar_enjoy", youtube: null, kick: "omar_enjoy" },
-        { name: "Peerless", youtube: null, kick: "peerless" },
-        { name: "RAYAN_A3", youtube: null, kick: "rayan_a3" },
-        { name: "RAYN", youtube: null, kick: "rayn" },
-        { name: "S5B", youtube: "S5B_Q", kick: "s5b" },
-        { name: "Seagull", youtube: null, kick: "seagull" },
-        { name: "SENSEI_09", youtube: null, kick: "sensei-09" },
-        { name: "TAF86", youtube: null, kick: "taf86" },
-        { name: "Vilwo", youtube: null, kick: "vilwo" },
-        { name: "w1pey", youtube: null, kick: "w1pey" },
-        { name: "wef0", youtube: null, kick: "wef0" },
-        { name: "wolf", youtube: null, kick: "wolf" },
-        { name: "xKnDrx", youtube: null, kick: null },
-        { name: "ZOO6K", youtube: null, kick: null }
+        { name: "DREX_7A", kick: "drex-7a" },
+        { name: "OGxHusni", kick: "ogxhusni" },
+        { name: "NEFOXD", kick: "nefoxd" },
+        { name: "Waakd", kick: "waakd" },
+        { name: "Al_Hashidi", kick: "al_hashidi" },
+        { name: "ALPHAA27", kick: "alphaa27" },
+        { name: "ALRND", kick: "alrnd" },
+        { name: "bobshayb", kick: "bobshayb" },
+        { name: "Drb7h", kick: "drb7h" },
+        { name: "F1aisal", kick: "f1aisal" },
+        { name: "Fhlwy", kick: "fhlwy" },
+        { name: "Graficsaw", kick: "graficsaw" },
+        { name: "Hook", kick: "hook" },
+        { name: "iC4C", kick: "ic4c" },
+        { name: "ID7O", kick: "id7o" },
+        { name: "iiMaD", kick: null },
+        { name: "iMonkey_D", kick: "imonkey_d" },
+        { name: "iSLF", kick: "islf" },
+        { name: "lHAJAR", kick: "lhajar" },
+        { name: "Mohsen_18", kick: "mohsen_18" },
+        { name: "moustache", kick: null },
+        { name: "Musab", kick: "musab" },
+        { name: "NASSER", kick: "nasser" },
+        { name: "OKB8", kick: "okb8" },
+        { name: "omar_enjoy", kick: "omar_enjoy" },
+        { name: "Peerless", kick: "peerless" },
+        { name: "RAYAN_A3", kick: "rayan_a3" },
+        { name: "RAYN", kick: "rayn" },
+        { name: "S5B", kick: "s5b" },
+        { name: "Seagull", kick: "seagull" },
+        { name: "SENSEI_09", kick: "sensei-09" },
+        { name: "TAF86", kick: "taf86" },
+        { name: "Vilwo", kick: "vilwo" },
+        { name: "w1pey", kick: "w1pey" },
+        { name: "wef0", kick: "wef0" },
+        { name: "wolf", kick: "wolf" }
     ],
 
     MT: [],
 
     Falcons: [
-        { name: "BO3OMAR22", youtube: null, kick: null },
-        { name: "BanderitaX", youtube: null, kick: null },
-        { name: "FZX", youtube: null, kick: null },
-        { name: "LLE", youtube: null, kick: null },
-        { name: "SaudCast", youtube: null, kick: null },
-        { name: "RAED", youtube: null, kick: null },
-        { name: "xSMA333", youtube: null, kick: null },
-        { name: "Aziz", youtube: null, kick: null },
-        { name: "Drb7h", youtube: null, kick: null },
-        { name: "Abu Abeer", youtube: null, kick: null },
-        { name: "oPiiLz", youtube: null, kick: null },
-        { name: "3ADEL", youtube: null, kick: null },
-        { name: "Mohammed Oden", youtube: null, kick: null }
+        { name: "BO3OMAR22", kick: null },
+        { name: "BanderitaX", kick: null },
+        { name: "FZX", kick: null },
+        { name: "LLE", kick: null },
+        { name: "SaudCast", kick: null },
+        { name: "RAED", kick: null },
+        { name: "xSMA333", kick: null },
+        { name: "Aziz", kick: null },
+        { name: "Drb7h", kick: null },
+        { name: "Abu Abeer", kick: null },
+        { name: "oPiiLz", kick: null },
+        { name: "3ADEL", kick: null },
+        { name: "Mohammed Oden", kick: null }
     ],
 
     POWR: [
-        { name: "Shongxbong", youtube: null, kick: null },
-        { name: "Abu Nooh", youtube: null, kick: null },
-        { name: "Mjrm Games", youtube: null, kick: null },
-        { name: "FFearFFul", youtube: null, kick: null },
-        { name: "D7oomy999", youtube: null, kick: null },
-        { name: "Abu Khalil", youtube: null, kick: null },
-        { name: "Klooode25", youtube: null, kick: null },
-        { name: "MrFifa", youtube: null, kick: null },
-        { name: "Abu 3abd", youtube: null, kick: null },
-        { name: "Moskoo", youtube: null, kick: null },
-        { name: "AbuSwe7l", youtube: null, kick: null },
-        { name: "YZNSA", youtube: null, kick: null }
+        { name: "Shongxbong", kick: null },
+        { name: "Abu Nooh", kick: null },
+        { name: "Mjrm Games", kick: null },
+        { name: "FFearFFul", kick: null },
+        { name: "D7oomy999", kick: null },
+        { name: "Abu Khalil", kick: null },
+        { name: "Klooode25", kick: null },
+        { name: "MrFifa", kick: null },
+        { name: "Abu 3abd", kick: null },
+        { name: "Moskoo", kick: null },
+        { name: "AbuSwe7l", kick: null },
+        { name: "YZNSA", kick: null }
+    ],
+
+    ArabKick: [
+
+        { name: "absi", kick: "absi" },
+        { name: "sxb", kick: "sxb" },
+        { name: "3mr", kick: "3mr" },
+        { name: "3li_boltx", kick: "3li_boltx" },
+        { name: "odayyouyou", kick: "odayyouyou" },
+        { name: "hoova88", kick: "hoova88" },
+        { name: "mansourko", kick: "mansourko" },
+        { name: "bigbossff", kick: "bigbossff" },
+        { name: "ii2a", kick: "ii2a" },
+        { name: "bashaiq1", kick: "bashaiq1" },
+        { name: "majah92", kick: "majah92" },
+        { name: "gooba_off", kick: "gooba_off" },
+        { name: "tmsahff", kick: "tmsahff" },
+        { name: "klash", kick: "klash" },
+        { name: "zemb99", kick: "zemb99" },
+        { name: "sehamx", kick: "sehamx" },
+        { name: "kartona", kick: "kartona" },
+        { name: "S_AM1", kick: "s_am1" },
+        { name: "Nxv7", kick: "nxv7" },
+        { name: "Saad", kick: "saad" },
+        { name: "NAHAR_KW", kick: "nahar-kw" },
+        { name: "iAS18", kick: "ias18" },
+        { name: "BIGJOE_TV", kick: "bigjoe_tv" },
+        { name: "NaderHD", kick: "naderhd" },
+        { name: "ostv9", kick: "ostv9" },
+        { name: "kb_ttv6", kick: "kb-ttv6" },
+        { name: "Sa3dola", kick: "sa3dola" },
+        { name: "L3viGamer", kick: "L3viGamer" },
+        { name: "xshryan", kick: "xshryan" },
+        { name: "mwalid07", kick: "mwalid07" },
+        { name: "SAUDK10", kick: "saudk10" },
+        { name: "sa7rawiyt", kick: "sa7rawiyt" },
+
+        { name: "raoufbelkacemi", kick: "raoufbelkacemi" },
+        { name: "maherco", kick: "maherco" },
+        { name: "fwaz", kick: "fwaz" },
+        { name: "abuswe7l", kick: "abuswe7l" },
+        { name: "mustafa_go", kick: "mustafa_go" },
+        { name: "alkrky99", kick: "alkrky99" },
+        { name: "beroiq", kick: "beroiq" },
+        { name: "firas", kick: "firas" },
+        { name: "ogabdullah", kick: "ogabdullah" },
+        { name: "abdulrhman", kick: "abdulrhman" },
+
+        { name: "milslem1", kick: "milslem1" },
+        { name: "IHxHI", kick: "IHxHI" },
+        { name: "malikos038", kick: "malikos038" },
+        { name: "Z_z3tr", kick: "Z_z3tr" },
+        { name: "Psn_Hakoom", kick: "Psn_Hakoom" },
+        { name: "Rick_702", kick: "Rick_702" },
+        { name: "skabuddyy", kick: "skabuddyy" },
+        { name: "aminekickh", kick: "aminekickh" },
+        { name: "7qu10", kick: "7qu10" },
+        { name: "Q8_OuTLaWz", kick: "Q8_OuTLaWz" },
+        { name: "ABO_NG", kick: "ABO_NG" },
+        { name: "kok10", kick: "kok10" },
+        { name: "ssfgaming", kick: "ssfgaming" },
+        { name: "Rkuoz", kick: "Rkuoz" },
+        { name: "KANFN", kick: "KANFN" },
+        { name: "c2j6", kick: "c2j6" },
+        { name: "Rami7r", kick: "Rami7r" },
+        { name: "abdullahepic", kick: "abdullahepic" },
+        { name: "JustSehl", kick: "JustSehl" },
+        { name: "normal80", kick: "normal80" },
+        { name: "F0XER", kick: "F0XER" },
+        { name: "Ahmedmkk", kick: "Ahmedmkk" },
+        { name: "sanovr", kick: "sanovr" },
+        { name: "aboturki", kick: "aboturki" },
+        { name: "ProfessorQ8", kick: "ProfessorQ8" },
+        { name: "RTG_VENOM", kick: "RTG_VENOM" },
+        { name: "XFOR_GAMER", kick: "XFOR_GAMER" },
+        { name: "RSTO122", kick: "RSTO122" },
+        { name: "AbdMehdi", kick: "AbdMehdi" },
+        { name: "Albasrawi", kick: "Albasrawi" },
+        { name: "FHD_01", kick: "FHD_01" },
+        { name: "i_ZERO_i", kick: "i_ZERO_i" },
+        { name: "ramizalabdullah", kick: "ramizalabdullah" },
+        { name: "Budh", kick: "Budh" },
+        { name: "jaafarGM", kick: "jaafarGM" },
+        { name: "Agapios", kick: "Agapios" },
+        { name: "C41S", kick: "C41S" },
+        { name: "GOGOLIVE", kick: "GOGOLIVE" },
+        { name: "Edrs", kick: "Edrs" },
+        { name: "sddfn", kick: "sddfn" },
+        { name: "casper002", kick: "casper002" },
+        { name: "Drk07", kick: "Drk07" },
+        { name: "Ghaithh", kick: "Ghaithh" },
+        { name: "Pesawigaming", kick: "Pesawigaming" },
+        { name: "Ali_II42", kick: "Ali_II42" },
+        { name: "xYaser111x", kick: "xYaser111x" },
+        { name: "QuadroSquad", kick: "QuadroSquad" },
+
+        { name: "Gaming_Souhail", kick: "Gaming_Souhail" },
+        { name: "ojaymaw", kick: "ojaymaw" },
+        { name: "OMAR44Q", kick: "OMAR44Q" },
+        { name: "kangakon", kick: "kangakon" },
+        { name: "GAMER_o3", kick: "GAMER_o3" },
+        { name: "Elshakoumy", kick: "Elshakoumy" },
+        { name: "MINATOO9", kick: "MINATOO9" },
+        { name: "the_admiral", kick: "the_admiral" },
+        { name: "SOFLLER", kick: "SOFLLER" },
+        { name: "Cyber7X", kick: "Cyber7X" },
+        { name: "Hicham_Panda", kick: "Hicham_Panda" },
+
+        { name: "Parker_Seifddine", kick: "Parker_Seifddine" },
+        { name: "Amoury22", kick: "Amoury22" },
+        { name: "N4IFCO", kick: "N4IFCO" },
+        { name: "saudalk", kick: "saudalk" },
+        { name: "Abunoo7", kick: "Abunoo7" },
+        { name: "ab-arab", kick: "ab-arab" }
     ]
 };
 
 /* =========================
-   FLATTEN
+   BUILD CREATOR LIST
 ========================= */
 
 const creators = [];
 
 for (const team of Object.keys(CREATORS)) {
+
     for (const creator of CREATORS[team]) {
+
+        if (!creator.kick) {
+            continue;
+        }
+
         creators.push({
             ...creator,
             team
@@ -156,89 +272,39 @@ for (const team of Object.keys(CREATORS)) {
 }
 
 /* =========================
-   PERSISTENT STATE
+   REMOVE DUPLICATES
 ========================= */
 
-const DATA_DIR = path.join(__dirname, "data");
-const STATE_FILE = path.join(DATA_DIR, "posted.json");
+const uniqueCreators = [];
+const seen = new Set();
 
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, {
-        recursive: true
-    });
-}
+for (const creator of creators) {
 
-function loadState() {
+    const key =
+        creator.kick.toLowerCase();
 
-    try {
-
-        if (!fs.existsSync(STATE_FILE)) {
-            return {};
-        }
-
-        return JSON.parse(
-            fs.readFileSync(
-                STATE_FILE,
-                "utf8"
-            )
-        );
-
-    } catch (error) {
-
-        console.error(
-            "❌ خطأ في قراءة state:",
-            error.message
-        );
-
-        return {};
+    if (seen.has(key)) {
+        continue;
     }
-}
 
-let postedState = loadState();
-
-function saveState() {
-
-    try {
-
-        fs.writeFileSync(
-            STATE_FILE,
-            JSON.stringify(
-                postedState,
-                null,
-                2
-            ),
-            "utf8"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "❌ خطأ في حفظ state:",
-            error.message
-        );
-    }
+    seen.add(key);
+    uniqueCreators.push(creator);
 }
 
 /* =========================
-   MEMORY
+   STATE
 ========================= */
 
 const liveState = new Map();
+const postedStreams = new Map();
 
 let kickAccessToken = null;
 let kickTokenExpiresAt = 0;
-
 let monitoring = false;
 
 /*
-  أول فحص بعد تشغيل البوت.
-
-  مهم:
-  إذا الحساب كان Live قبل تشغيل البوت،
-  لا نرسل تنبيه مباشرة.
-
-  ننتظر حتى نكتشف انتقال:
-  OFFLINE -> LIVE
+  الحسابات التي شاهدناها
+  عند تشغيل البوت لأول مرة.
 */
 
 const firstSeen = new Set();
@@ -256,26 +322,30 @@ async function getKickToken() {
         return kickAccessToken;
     }
 
-    const response = await fetch(
-        "https://id.kick.com/oauth/token",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type":
-                    "application/x-www-form-urlencoded"
-            },
-            body: new URLSearchParams({
-                grant_type:
-                    "client_credentials",
+    const response =
+        await fetch(
+            "https://id.kick.com/oauth/token",
+            {
+                method: "POST",
 
-                client_id:
-                    KICK_CLIENT_ID,
+                headers: {
+                    "Content-Type":
+                        "application/x-www-form-urlencoded"
+                },
 
-                client_secret:
-                    KICK_CLIENT_SECRET
-            })
-        }
-    );
+                body:
+                    new URLSearchParams({
+                        grant_type:
+                            "client_credentials",
+
+                        client_id:
+                            KICK_CLIENT_ID,
+
+                        client_secret:
+                            KICK_CLIENT_SECRET
+                    })
+            }
+        );
 
     if (!response.ok) {
 
@@ -306,7 +376,7 @@ async function getKickToken() {
 }
 
 /* =========================
-   KICK REQUEST
+   KICK API
 ========================= */
 
 async function kickRequest(url) {
@@ -319,6 +389,7 @@ async function kickRequest(url) {
             url,
             {
                 headers: {
+
                     Authorization:
                         `Bearer ${token}`,
 
@@ -345,23 +416,19 @@ async function kickRequest(url) {
 }
 
 /* =========================
-   CHECK KICK
+   CHECK STREAM
 ========================= */
 
 async function checkKick(creator) {
 
-    if (!creator.kick) {
-        return null;
-    }
-
-    const username =
+    const slug =
         encodeURIComponent(
             creator.kick
         );
 
     const data =
         await kickRequest(
-            `https://api.kick.com/public/v1/channels?slug=${username}`
+            `https://api.kick.com/public/v1/channels?slug=${slug}`
         );
 
     const channel =
@@ -398,7 +465,7 @@ async function checkKick(creator) {
 }
 
 /* =========================
-   SEND ALERT
+   SEND TELEGRAM
 ========================= */
 
 async function sendLiveAlert(
@@ -461,23 +528,18 @@ async function monitorCreators() {
     try {
 
         console.log(
-            `🔎 فحص ${creators.length} حساب...`
+            `🔎 فحص ${uniqueCreators.length} حساب...`
         );
 
-        /*
-          DREX_7A أول واحد دائمًا
-        */
+        for (
+            const creator
+            of uniqueCreators
+        ) {
 
-        for (const creator of creators) {
-
-            if (!creator.kick) {
-                continue;
-            }
+            const key =
+                creator.kick.toLowerCase();
 
             try {
-
-                const key =
-                    creator.kick.toLowerCase();
 
                 const stream =
                     await checkKick(
@@ -521,45 +583,34 @@ async function monitorCreators() {
                         true
                     );
 
-                    /*
-                      لا نرسل القديم
-                    */
-
                     console.log(
-                        `👀 ${creator.name} كان Live عند بدء البوت — تجاهل أول تنبيه`
+                        `👀 ${creator.name} LIVE عند بدء التشغيل — تم تجاهله`
                     );
 
                     continue;
                 }
 
                 /*
-                  إذا كان Live من قبل
-                  لا نرسل إلا إذا تغير stream ID
+                  نفس البث
                 */
 
                 if (
                     wasLive &&
-                    postedState[key] === streamId
+                    postedStreams.get(key) ===
+                    streamId
                 ) {
 
                     continue;
                 }
 
                 /*
-                  انتقال جديد:
-                  OFFLINE -> LIVE
+                  بث جديد
                 */
 
                 if (!wasLive) {
 
-                    /*
-                      حماية إضافية:
-                      إذا سبق نشر نفس البث
-                      لا تعيده.
-                    */
-
                     if (
-                        postedState[key] ===
+                        postedStreams.get(key) ===
                         streamId
                     ) {
 
@@ -579,10 +630,10 @@ async function monitorCreators() {
 
                     if (sent) {
 
-                        postedState[key] =
-                            streamId;
-
-                        saveState();
+                        postedStreams.set(
+                            key,
+                            streamId
+                        );
                     }
                 }
 
@@ -606,7 +657,7 @@ async function monitorCreators() {
 }
 
 /* =========================
-   COMMANDS
+   START
 ========================= */
 
 bot.onText(
@@ -620,10 +671,13 @@ bot.onText(
 
 🟢 البوت يعمل
 
-⭐ DREX_7A = الأولوية
+⭐ DREX_7A = الأولوية #1
 
-📡 مراقبة Kick مفعلة
-📢 تنبيهات القناة مفعلة
+📡 Kick فقط
+📢 تنبيهات البث مفعلة
+
+👥 الحسابات:
+${uniqueCreators.length}
 
 /status
 /creators`
@@ -640,15 +694,12 @@ bot.onText(
     async msg => {
 
         let text =
-            "📡 حالة المراقبة:\n\n";
+            "📡 حالة البث:\n\n";
 
         for (
-            const creator of creators
+            const creator
+            of uniqueCreators
         ) {
-
-            if (!creator.kick) {
-                continue;
-            }
 
             const live =
                 liveState.get(
@@ -656,11 +707,7 @@ bot.onText(
                 );
 
             text +=
-                `${creator.name} — ${
-                    live
-                        ? "🔴 LIVE"
-                        : "⚫ Offline"
-                }\n`;
+                `${live ? "🔴" : "⚫"} ${creator.name}\n`;
         }
 
         await bot.sendMessage(
@@ -679,43 +726,59 @@ bot.onText(
     async msg => {
 
         let text =
-            "📋 قائمة المراقبة:\n";
+            "📋 حسابات المراقبة:\n\n";
 
         for (
-            const team of
-            Object.keys(CREATORS)
+            const team
+            of Object.keys(CREATORS)
         ) {
 
             text +=
-                `\n🏷️ ${team}\n`;
+                `🏷️ ${team}\n`;
 
             for (
                 const creator
                 of CREATORS[team]
             ) {
 
-                text +=
-                    `• ${creator.name}`;
-
-                if (creator.kick) {
-
-                    text +=
-                        ` — @${creator.kick}`;
+                if (!creator.kick) {
+                    continue;
                 }
 
-                text += "\n";
+                text +=
+                    `• ${creator.name} — @${creator.kick}\n`;
             }
+
+            text += "\n";
         }
 
-        await bot.sendMessage(
-            msg.chat.id,
-            text
-        );
+        /*
+          Telegram عنده حد لطول الرسالة.
+          نقسم القائمة إذا كانت طويلة.
+        */
+
+        const MAX =
+            4000;
+
+        for (
+            let i = 0;
+            i < text.length;
+            i += MAX
+        ) {
+
+            await bot.sendMessage(
+                msg.chat.id,
+                text.substring(
+                    i,
+                    i + MAX
+                )
+            );
+        }
     }
 );
 
 /* =========================
-   ERRORS
+   TELEGRAM ERRORS
 ========================= */
 
 bot.on(
@@ -728,6 +791,10 @@ bot.on(
         );
     }
 );
+
+/* =========================
+   PROCESS ERRORS
+========================= */
 
 process.on(
     "unhandledRejection",
@@ -752,7 +819,7 @@ process.on(
 );
 
 /* =========================
-   START
+   START BOT
 ========================= */
 
 console.log(
@@ -768,7 +835,7 @@ console.log(
 );
 
 console.log(
-    `👥 Total creators: ${creators.length}`
+    `👥 Unique Kick accounts: ${uniqueCreators.length}`
 );
 
 console.log(
@@ -780,7 +847,7 @@ console.log(
 );
 
 console.log(
-    "💾 Persistent state: ON"
+    "🎥 YouTube: OFF"
 );
 
 console.log(
@@ -788,26 +855,13 @@ console.log(
 );
 
 /*
-  أول فحص:
-  نعتبره فحص تأسيسي فقط.
+  الفحص الأول
 */
 
-(async () => {
-
-    console.log(
-        "🚀 Initial scan..."
-    );
-
-    await monitorCreators();
-
-    console.log(
-        "✅ Initial scan complete"
-    );
-
-})();
+monitorCreators();
 
 /*
-  الفحوصات التالية
+  الفحص الدوري
 */
 
 setInterval(
